@@ -1,0 +1,22 @@
+# Binarios compilados
+/target/
+**/*.rs.bk
+*.pdb
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Temporales
+*.tmp
+*.temp
