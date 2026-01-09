@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  
+  <!-- Definición del Producto -->
+  <Product 
+    Id="*" 
+    Name="En-Control Print Service" 
+    Language="1033" 
+    Version="0.1.0" 
+    Manufacturer="En-Control Team" 
+    UpgradeCode="12345678-1234-1234-1234-123456789012">
+    
+    <!-- Configuración del paquete -->
+    <Package 
+      InstallerVersion="200" 
+      Compressed="yes" 
+      InstallScope="perMachine" 
+      Description="Service local de impresión para En-Control PWA"
+      Comments="v0.1.0" />
+
+    <!-- Reglas de actualización -->
+    <MajorUpgrade DowngradeErrorMessage="A newer version is already installed." />
+    
+    <!-- Medios de instalación -->
+    <MediaTemplate EmbedCab="yes" />
+
+    <!-- Características del producto -->
+    <Feature Id="ProductFeature" Title="En-Control Print Service" Level="1">
+      <ComponentGroupRef Id="ProductComponents" />
+      <ComponentRef Id="ApplicationShortcut" />
+    </Feature>
+
+    <!-- Interfaz de usuario -->
+    <UIRef Id="WixUI_Minimal"/>
+    <WixVariable Id="WixUILicenseRtf" Value="License.rtf" />
+    <!-- 
+      Para usar logos personalizados, las imagenes deben tener tamaños exactos:
+      Banner: 493 x 58 px
+      Dialog: 493 x 312 px
+    <WixVariable Id="WixUIBannerBmp" Value="installer/logo.bmp" />
+    <WixVariable Id="WixUIDialogBmp" Value="installer/logo.bmp" />
+    -->
+    
+
+  </Product>
+
+  <!-- Definición de fragmentos -->
+  <Fragment>
+    <!-- Estructura de directorios -->
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="ProgramFilesFolder">
+        <Directory Id="CompanyFolder" Name="EnControl">
+          <Directory Id="INSTALLFOLDER" Name="PrintService" />
+        </Directory>
+      </Directory>
+      
+      <!-- Menú de inicio -->
+      <Directory Id="ProgramMenuFolder">
+        <Directory Id="ApplicationProgramsFolder" Name="En-Control Print Service"/>
+      </Directory>
+
+      <!-- Carpeta de Inicio (Startup) -->
+      <Directory Id="StartupFolder" Name="Startup" />
+    </Directory>
+  </Fragment>
+
+  <!-- Componentes del producto -->
+  <Fragment>
+    <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
+      
+      <!-- Ejecutable principal -->
+      <Component Id="MainExecutable" Guid="ABCDEF12-3456-7890-ABCD-EF1234567890">
+        <File 
+          Id="EnControlPrintService.exe" 
+          Source="target\release\en-control-print-service.exe" 
+          KeyPath="yes" />
+          
+        <ServiceInstall
+          Id="ServiceInstaller"
+          Type="ownProcess"
+          Vital="yes"
+          Name="EnControlPrintService"
+          DisplayName="En-Control Print Service"
+          Description="Servicio de impresión local para En-Control PWA"
+          Start="auto"
+          Account="LocalSystem"
+          ErrorControl="normal"
+          Interactive="no"
+          >
+          <ServiceDependency Id="Spooler" />
+        </ServiceInstall>
+        <ServiceControl Id="StartService" Start="install" Stop="both" Remove="uninstall" Name="EnControlPrintService" Wait="yes" />
+      </Component>
+
+      <!-- README -->
+      <Component Id="ReadmeFile" Guid="BCDEF123-4567-8901-BCDE-F12345678901">
+        <File 
+          Id="README.txt" 
+          Source="README_INSTALACION.txt" 
+          KeyPath="yes" />
+      </Component>
+
+    </ComponentGroup>
+
+
+  </Fragment>
+
+  <!-- Acceso directo en menú inicio (opcional) -->
+  <Fragment>
+    <DirectoryRef Id="ApplicationProgramsFolder">
+      <Component Id="ApplicationShortcut" Guid="DEF12345-6789-0123-4567-123456789012">
+        
+        <!-- Acceso directo para abrir documentación -->
+        <Shortcut 
+          Id="ReadmeShortcut"
+          Name="Ver Instrucciones"
+          Description="Instrucciones de uso del servicio"
+          Target="[INSTALLFOLDER]README.txt"
+          WorkingDirectory="INSTALLFOLDER"/>
+
+        <!-- Registro para permitir desinstalación -->
+        <RemoveFolder Id="ApplicationProgramsFolder" On="uninstall"/>
+        
+        <RegistryValue 
+          Root="HKCU" 
+          Key="Software\EnControl\PrintService" 
+          Name="installed" 
+          Type="integer" 
+          Value="1" 
+          KeyPath="yes"/>
+      </Component>
+    </DirectoryRef>
+  </Fragment>
+
+</Wix>
