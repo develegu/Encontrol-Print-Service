@@ -14,8 +14,6 @@ use windows_service::{
         ServiceControl, ServiceControlAccept, ServiceExitCode, ServiceState, ServiceStatus,
         ServiceType,
     },
-    service_control_handler::{self, ServiceControlHandlerResult},
-    service_dispatcher,
 };
 
 mod printer;
@@ -313,7 +311,7 @@ fn run_service(_arguments: Vec<std::ffi::OsString>) -> windows_service::Result<(
 
     // Spawn the Actix server in a separate thread because block_on blocks the current thread
     // We need the current thread to wait for the shutdown signal from the event_handler
-    let server_handle = std::thread::spawn(|| {
+    let _server_handle = std::thread::spawn(|| {
         if let Err(e) = actix_web::rt::System::new().block_on(run_server()) {
              error!("Error running server: {}", e);
         }
