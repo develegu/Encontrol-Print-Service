@@ -163,29 +163,20 @@ async fn get_printer_status_api(query: web::Query<StatusQuery>) -> HttpResponse 
     }
 }
 
-/// GET /status-page - Página HTML simple con el estado de la impresora
+/// GET /status-page - Página HTML con el estado de impresoras
+/// Si se pasa `?name=...`, muestra solo esa; si no, lista todas.
 async fn get_printer_status_page(query: web::Query<StatusQuery>) -> HttpResponse {
-    let title = "En-Control Print Service - Printer Status";
-    let target_name = if let Some(ref n) = query.name {
-        n.clone()
-    } else {
-        match printer::get_system_printers() {
-            Ok(printers) => {
-                if let Some(first) = printers.first() { first.clone() } else { String::new() }
-            }
-            Err(_) => String::new(),
-        }
-    };
+    let title = "En-Control Print Service - Estados de impresoras";
 
     let mut html = String::new();
     html.push_str("<!DOCTYPE html><html><head><meta charset=\"utf-8\">\n");
     html.push_str(&format!("<title>{}</title>", title));
-    html.push_str("<style>body{font-family:sans-serif;margin:24px} .ok{color:#16a34a} .warn{color:#dc2626} .box{border:1px solid #e5e7eb;padding:16px;border-radius:8px} .small{color:#6b7280;font-size:12px}</style></head><body>\n");
+    html.push_str("<style>body{font-family:sans-serif;margin:24px} .ok{color:#16a34a} .warn{color:#dc2626} .box{border:1px solid #e5e7eb;padding:16px;border-radius:8px;margin-bottom:12px} .small{color:#6b7280;font-size:12px} .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}</style></head><body>\n");
     html.push_str(&format!("<h2>{}</h2>", title));
-    if target_name.is_empty() {
-        html.push_str("<div class=\"box warn\">No hay impresoras disponibles.</div>");
-    } else {
-        match printer::get_printer_status(&target_name) {
+
+    if let Some(ref name) = query.name {
+        // Vista de una sola impresora
+        match printer::get_printer_status(name) {
             Ok(st) => {
                 let cls = if st.ready {"ok"} else {"warn"};
                 html.push_str(&format!("<div class=\"box\"><h3>Impresora: {}</h3>", st.name));
@@ -194,10 +185,40 @@ async fn get_printer_status_page(query: web::Query<StatusQuery>) -> HttpResponse
                 html.push_str("</div>");
             }
             Err(e) => {
-                html.push_str(&format!("<div class=\"box warn\">Error obteniendo estado: {}</div>", e));
+                html.push_str(&format!("<div class=\"box warn\">Error obteniendo estado de '{}': {}</div>", name, e));
+            }
+        }
+    } else {
+        // Vista de todas las impresoras físicas filtradas por get_system_printers()
+        match printer::get_system_printers() {
+            Ok(printers) => {
+                if printers.is_empty() {
+                    html.push_str("<div class=\"box warn\">No hay impresoras disponibles.</div>");
+                } else {
+                    html.push_str("<div class=\"grid\">");
+                    for p in printers {
+                        match printer::get_printer_status(&p) {
+                            Ok(st) => {
+                                let cls = if st.ready {"ok"} else {"warn"};
+                                html.push_str(&format!("<div class=\"box\"><h3>{}</h3>", st.name));
+                                html.push_str(&format!("<p class=\"{}\"><strong>Estado:</strong> {}<br><span class=\"small\">online: {}, ready: {}</span></p>", cls, st.status_text, st.online, st.ready));
+                                html.push_str(&format!("<p class=\"small\">flags: {}</p>", st.status_flags));
+                                html.push_str("</div>");
+                            }
+                            Err(e) => {
+                                html.push_str(&format!("<div class=\"box warn\"><h3>{}</h3><p>Error obteniendo estado: {}</p></div>", p, e));
+                            }
+                        }
+                    }
+                    html.push_str("</div>");
+                }
+            }
+            Err(e) => {
+                html.push_str(&format!("<div class=\"box warn\">Error obteniendo impresoras del sistema: {}</div>", e));
             }
         }
     }
+
     html.push_str("<p class=\"small\">Endpoints: <a href=\"/available\">/available</a> · <a href=\"/status\">/status</a></p>");
     html.push_str("</body></html>");
 
