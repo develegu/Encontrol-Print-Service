@@ -106,6 +106,19 @@
           KeyPath="yes" />
       </Component>
 
+      <!-- Recursos UI: asegurarse que los archivos de imagen e icono se incluyan en el MSI -->
+      <Component Id="InstallerIconFile" Guid="CDEF1234-5678-9012-CDEF-123456789012">
+        <File Id="InstallerLogoIco" Source="installer\logo.ico" KeyPath="no" />
+      </Component>
+
+      <Component Id="InstallerBannerFile" Guid="DEF01234-5678-9012-DEF0-123456789012">
+        <File Id="InstallerBannerBmp" Source="installer\banner.bmp" KeyPath="no" />
+      </Component>
+
+      <Component Id="InstallerDialogFile" Guid="EF012345-6789-0123-EF01-234567890123">
+        <File Id="InstallerLogoBmp" Source="installer\logo.bmp" KeyPath="no" />
+      </Component>
+
     </ComponentGroup>
 
 
