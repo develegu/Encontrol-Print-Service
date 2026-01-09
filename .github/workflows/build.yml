@@ -92,8 +92,16 @@ jobs:
           if (-not (Test-Path $dialogBase)) { Write-Host "Dialog base not found: $dialogBase"; exit 0 }
           if (-not (Test-Path $smallLogo)) { Write-Host "Small logo not found: $smallLogo"; exit 0 }
           Write-Host "Composing $outDialog from $dialogBase + $smallLogo"
-          magick convert $dialogBase -resize 493x312 ^
-            ( $smallLogo -resize 96x96 ) -gravity northwest -geometry +24+24 -composite $outDialog
+          # Use ImageMagick 'composite' to overlay the small logo onto the dialog background
+          Write-Host "ImageMagick version:"; & magick -version
+          $composeCmd = "composite -geometry +24+24 $smallLogo $dialogBase $outDialog"
+          Write-Host "Running: magick $composeCmd"
+          & magick composite -geometry +24+24 $smallLogo $dialogBase $outDialog
+          if (-not (Test-Path $outDialog)) {
+            Write-Host "ERROR: composed dialog bitmap not found: $outDialog";
+            Write-Host "Contents of installer dir:"; Get-ChildItem -Path $installerDir -Force | ForEach-Object { Write-Host $_.FullName }
+            exit 1
+          }
           Write-Host "Composed dialog bitmap:"; Get-Item $outDialog | Format-List Name,Length
 
       - name: Prepare executable for WiX
