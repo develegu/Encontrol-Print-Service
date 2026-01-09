@@ -61,6 +61,13 @@ if %ERRORLEVEL% NEQ 0 (
     pause
     exit /b %ERRORLEVEL%
 )
+rem Para Bootstrapper (BalExtension), agregar la extension tambien en candle
+"%WIX_PATH%\candle" -ext WixBalExtension bundle.wxs
+if %ERRORLEVEL% NEQ 0 (
+    echo [ERROR] Fallo al ejecutar 'candle' (con BalExtension) para el bundle.
+    pause
+    exit /b %ERRORLEVEL%
+)
 "%WIX_PATH%\light" -ext WixBalExtension -out EnControlPrintServiceSetup.exe bundle.wixobj
 if %ERRORLEVEL% NEQ 0 (
     echo [ERROR] Fallo al ejecutar 'light' para el bundle.

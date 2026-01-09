@@ -3,8 +3,8 @@ name: Build and Release
 on:
   push:
     tags:
-      - "v*" # Trigger cuando hagas push de un tag como v0.1.0
-  workflow_dispatch: # Permite ejecutar manualmente
+      - "v*"
+  workflow_dispatch:
 
 jobs:
   build:
@@ -13,11 +13,6 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: windows-latest
-            target: x86_64-pc-windows-msvc
-            artifact_name: en-control-print-service.exe
-            asset_name: en-control-print-service-windows-x64.exe
-
           - os: macos-latest
             target: x86_64-apple-darwin
             artifact_name: en-control-print-service
@@ -58,160 +53,25 @@ jobs:
           if [ -d "target/${{ matrix.target }}/release" ]; then
             ls -la "target/${{ matrix.target }}/release" || true
           fi
-          if [ -d "target/release" ]; then
-            ls -la "target/release" || true
-          fi
           echo "Find any en-control-print-service files:";
           find target -maxdepth 4 -type f -name "en-control-print-service*" -print || true
 
-      - name: Prepare artifact
+      - name: Prepare artifact (macOS)
         shell: bash
         run: |
+          set -e
           cd target/${{ matrix.target }}/release
           if [ -f "${{ matrix.artifact_name }}" ]; then
-            # macOS targets: preserve executable bit and compress to tar.gz
-            if [[ "${{ matrix.target }}" == *"apple-darwin"* ]]; then
-              chmod +x "${{ matrix.artifact_name }}"
-              strip "${{ matrix.artifact_name }}" || true
-              tar -czf "${{ matrix.asset_name }}.tar.gz" "${{ matrix.artifact_name }}"
-            else
-              mv "${{ matrix.artifact_name }}" "${{ matrix.asset_name }}"
-            fi
+            chmod +x "${{ matrix.artifact_name }}"
+            strip "${{ matrix.artifact_name }}" || true
+            tar -czf "${{ matrix.asset_name }}.tar.gz" "${{ matrix.artifact_name }}"
           fi
-
-      # --- On Windows: build MSI installer using WiX ---
-      - name: Install WiX Toolset (choco)
-        if: runner.os == 'Windows'
-        shell: powershell
-        run: |
-          choco install wixtoolset -y --no-progress
-
-      - name: Install ImageMagick (choco)
-        if: runner.os == 'Windows'
-        shell: powershell
-        run: |
-          choco install imagemagick -y --no-progress
-
-      - name: Generate installer images from assets/logo-source.png (if present)
-        if: runner.os == 'Windows'
-        shell: powershell
-        run: |
-          $src = "assets\logo-source.png"
-          if (Test-Path $src) {
-            Write-Host "Generating installer images from: $src"
-            & magick $src -background transparent -define icon:auto-resize=256,128,64,48,32,16 installer\logo.ico
-            & magick $src -resize 493x58 -gravity center -background white -extent 493x58 installer\banner.bmp
-            & magick $src -resize 128x128 installer\logo-128.png
-            & magick $src -resize 64x64 installer\logo-64.png
-            # Compose dialog base and overlay small logo
-            & magick $src -resize 493x312 installer\dialog_base.bmp
-            # Use 'magick composite' to avoid PowerShell parentheses parsing issues
-            & magick composite -geometry +24+24 installer\logo-128.png installer\dialog_base.bmp installer\dialog_with_logo.bmp
-            Write-Host "Installer images generated:"; Get-ChildItem installer | ForEach-Object { Write-Host $_.FullName }
-          } else {
-            Write-Host "assets\\logo-source.png not found; skipping image generation"
-          }
-
-      - name: Compose dialog bitmap with small logo (ImageMagick)
-        if: runner.os == 'Windows'
-        shell: powershell
-        run: |
-          $installerDir = "installer"
-          if (-not (Test-Path $installerDir)) { Write-Host "Installer dir not found: $installerDir"; exit 0 }
-          # Ensure dialog base exists (logo.bmp) and small logo (logo-128.png)
-          $dialogBase = Join-Path $installerDir 'logo.bmp'
-          $smallLogo = Join-Path $installerDir 'logo-128.png'
-          $outDialog = Join-Path $installerDir 'dialog_with_logo.bmp'
-          if (-not (Test-Path $dialogBase)) { Write-Host "Dialog base not found: $dialogBase"; exit 0 }
-          if (-not (Test-Path $smallLogo)) { Write-Host "Small logo not found: $smallLogo"; exit 0 }
-          Write-Host "Composing $outDialog from $dialogBase + $smallLogo"
-          # Use ImageMagick 'composite' to overlay the small logo onto the dialog background
-          Write-Host "ImageMagick version:"; & magick -version
-          $composeCmd = "composite -geometry +24+24 $smallLogo $dialogBase $outDialog"
-          Write-Host "Running: magick $composeCmd"
-          & magick composite -geometry +24+24 $smallLogo $dialogBase $outDialog
-          if (-not (Test-Path $outDialog)) {
-            Write-Host "ERROR: composed dialog bitmap not found: $outDialog";
-            Write-Host "Contents of installer dir:"; Get-ChildItem -Path $installerDir -Force | ForEach-Object { Write-Host $_.FullName }
-            exit 1
-          }
-          Write-Host "Composed dialog bitmap:"; Get-Item $outDialog | Format-List Name,Length
-
-      - name: Prepare executable for WiX
-        if: runner.os == 'Windows'
-        shell: powershell
-        run: |
-          $candidates = @(
-            "target\${{ matrix.target }}\release\${{ matrix.artifact_name }}",
-            "target\release\${{ matrix.artifact_name }}",
-            "target\${{ matrix.target }}\debug\${{ matrix.artifact_name }}",
-            "target\debug\${{ matrix.artifact_name }}"
-          )
-          $dstDir = "target\release"
-          $found = $false
-          foreach ($p in $candidates) {
-            Write-Host "Checking: $p"
-            if (Test-Path $p) { Write-Host "Found built exe: $p"; $found = $true; Copy-Item -Path $p -Destination (Join-Path $dstDir 'en-control-print-service.exe') -Force; break }
-          }
-          if (-not $found) {
-            Write-Host "ERROR: None of candidate exe paths exist. Listing target for debugging:";
-            Get-ChildItem -Recurse -Force -ErrorAction SilentlyContinue target | ForEach-Object { Write-Host $_.FullName }
-            exit 1
-          }
-          New-Item -ItemType Directory -Force -Path $dstDir | Out-Null
-          # Ensure README.txt exists at project root for older WXS variants
-          if (Test-Path "README.md") {
-            Copy-Item -Path README.md -Destination README.txt -Force
-            Write-Host "Created README.txt from README.md at repo root"
-          }
-          # Also copy README.md to target\release as README.txt for installer components referencing it there
-          if (Test-Path "README.md") { Copy-Item -Path README.md -Destination (Join-Path $dstDir 'README.txt') -Force }
-          Write-Host "Contents of $dstDir:";
-          Get-ChildItem -Path $dstDir -Recurse -Force | ForEach-Object { Write-Host $_.FullName }
-
-      - name: Verify WiX inputs exist
-        if: runner.os == 'Windows'
-        shell: powershell
-        run: |
-          $exe = "target\release\en-control-print-service.exe"
-          $readme = "README.md"
-          $banner = "installer\banner.bmp"
-          $dialog = "installer\dialog_with_logo.bmp"
-          $ico = "installer\ico.ico"
-          $allOk = $true
-          Write-Host "Verifying WiX inputs..."
-          foreach ($f in @($exe, $readme, $banner, $ico)) {
-            if (-not (Test-Path $f)) { Write-Host "MISSING: $f"; $allOk = $false } else { Write-Host "OK: $f" }
-          }
-          if (-not (Test-Path $dialog)) { Write-Host "Dialog bitmap not found, will use fallback 'installer\\logo.bmp'" }
-          if (-not $allOk) {
-            Write-Host "Listing important dirs for debugging:";
-            Get-ChildItem -Force target\release | ForEach-Object { Write-Host $_.FullName }
-            Get-ChildItem -Force installer | ForEach-Object { Write-Host $_.FullName }
-            exit 1
-          }
-
-      - name: Build MSI with WiX
-        if: runner.os == 'Windows'
-        shell: powershell
-        run: |
-          # compile installer.wxs -> installer.wixobj -> EnControlPrintService.msi
-          candle installer.wxs
-          light -ext WixUIExtension -out EnControlPrintService.msi installer.wixobj
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.asset_name }}
-          path: target/${{ matrix.target }}/release/${{ matrix.asset_name }}*
-
-      # Upload MSI if present
-      - name: Upload MSI artifact
-        if: runner.os == 'Windows'
-        uses: actions/upload-artifact@v4
-        with:
-          name: EnControlPrintService.msi
-          path: EnControlPrintService.msi
+          path: target/${{ matrix.target }}/release/${{ matrix.asset_name }}.tar.gz
 
   release:
     name: Create Release
