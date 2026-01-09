@@ -149,6 +149,28 @@ jobs:
           Write-Host "Contents of $dstDir:";
           Get-ChildItem -Path $dstDir -Recurse -Force | ForEach-Object { Write-Host $_.FullName }
 
+      - name: Verify WiX inputs exist
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          $exe = "target\release\en-control-print-service.exe"
+          $readme = "README.md"
+          $banner = "installer\banner.bmp"
+          $dialog = "installer\dialog_with_logo.bmp"
+          $ico = "installer\logo.ico"
+          $allOk = $true
+          Write-Host "Verifying WiX inputs..."
+          foreach ($f in @($exe, $readme, $banner, $ico)) {
+            if (-not (Test-Path $f)) { Write-Host "MISSING: $f"; $allOk = $false } else { Write-Host "OK: $f" }
+          }
+          if (-not (Test-Path $dialog)) { Write-Host "Dialog bitmap not found, will use fallback 'installer\\logo.bmp'" }
+          if (-not $allOk) {
+            Write-Host "Listing important dirs for debugging:";
+            Get-ChildItem -Force target\release | ForEach-Object { Write-Host $_.FullName }
+            Get-ChildItem -Force installer | ForEach-Object { Write-Host $_.FullName }
+            exit 1
+          }
+
       - name: Build MSI with WiX
         if: runner.os == 'Windows'
         shell: powershell
