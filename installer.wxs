@@ -19,7 +19,7 @@
       Comments="v0.1.0" />
 
     <!-- Icon for Add/Remove Programs and installer UI -->
-    <Icon Id="AppIcon" SourceFile="installer\\logo.ico" />
+    <Icon Id="AppIcon" SourceFile="installer\\ico.ico" />
     <Property Id="ARPPRODUCTICON" Value="AppIcon" />
 
     <!-- Reglas de actualización -->
@@ -105,7 +105,7 @@
 
       <!-- Recursos UI: asegurarse que los archivos de imagen e icono se incluyan en el MSI -->
       <Component Id="InstallerIconFile" Guid="CDEF1234-5678-9012-CDEF-123456789012">
-        <File Id="InstallerLogoIco" Source="installer\logo.ico" KeyPath="no" />
+        <File Id="InstallerLogoIco" Source="installer\ico.ico" KeyPath="no" />
       </Component>
 
       <Component Id="InstallerBannerFile" Guid="DEF01234-5678-9012-DEF0-123456789012">

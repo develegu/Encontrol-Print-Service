@@ -92,6 +92,25 @@ jobs:
         run: |
           choco install imagemagick -y --no-progress
 
+      - name: Generate installer images from assets/logo-source.png (if present)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          $src = "assets\logo-source.png"
+          if (Test-Path $src) {
+            Write-Host "Generating installer images from: $src"
+            & magick $src -background transparent -define icon:auto-resize=256,128,64,48,32,16 installer\logo.ico
+            & magick $src -resize 493x58 -gravity center -background white -extent 493x58 installer\banner.bmp
+            & magick $src -resize 128x128 installer\logo-128.png
+            & magick $src -resize 64x64 installer\logo-64.png
+            # Compose dialog base and overlay small logo
+            & magick $src -resize 493x312 installer\dialog_base.bmp
+            & magick installer\dialog_base.bmp ( installer\logo-128.png -resize 96x96 ) -gravity northwest -geometry +24+24 -composite installer\dialog_with_logo.bmp
+            Write-Host "Installer images generated:"; Get-ChildItem installer | ForEach-Object { Write-Host $_.FullName }
+          } else {
+            Write-Host "assets\\logo-source.png not found; skipping image generation"
+          }
+
       - name: Compose dialog bitmap with small logo (ImageMagick)
         if: runner.os == 'Windows'
         shell: powershell

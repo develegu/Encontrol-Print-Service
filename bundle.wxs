@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi" xmlns:bal="http://schemas.microsoft.com/wix/BalExtension">
+  <Bundle
+    Name="En-Control Print Service Installer"
+    Version="0.1.0"
+    Manufacturer="En-Control Team"
+    UpgradeCode="9b0f2d61-8c2a-4a2f-9f06-4c8a8d5f9e10"
+    IconSourceFile="installer\logo.ico">
+
+    <!-- Usar el Bootstrapper estándar con licencia RTF -->
+    <BootstrapperApplicationRef Id="WixStandardBootstrapperApplication.RtfLicense">
+      <bal:WixStandardBootstrapperApplication LicenseFile="License.rtf" />
+    </BootstrapperApplicationRef>
+
+    <Chain>
+      <!-- Instalar nuestro MSI construido previamente -->
+      <MsiPackage SourceFile="EnControlPrintService.msi" />
+    </Chain>
+  </Bundle>
+</Wix>
