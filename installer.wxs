@@ -41,7 +41,8 @@
     <!-- Banner: 493 x 58 px, Dialog: 493 x 312 px -->
     <!-- Indicar la ruta a los BMP para que WiX los incluya en el MSI -->
     <WixVariable Id="WixUIBannerBmp" Value="installer\\banner.bmp" />
-    <WixVariable Id="WixUIDialogBmp" Value="installer\\logo.bmp" />
+    <!-- Dialog image composed in CI: background + small logo placed top-left -->
+    <WixVariable Id="WixUIDialogBmp" Value="installer\\dialog_with_logo.bmp" />
     
 
   </Product>

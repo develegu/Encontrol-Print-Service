@@ -73,6 +73,29 @@ jobs:
         run: |
           choco install wixtoolset -y --no-progress
 
+      - name: Install ImageMagick (choco)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          choco install imagemagick -y --no-progress
+
+      - name: Compose dialog bitmap with small logo (ImageMagick)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          $installerDir = "installer"
+          if (-not (Test-Path $installerDir)) { Write-Host "Installer dir not found: $installerDir"; exit 0 }
+          # Ensure dialog base exists (logo.bmp) and small logo (logo-128.png)
+          $dialogBase = Join-Path $installerDir 'logo.bmp'
+          $smallLogo = Join-Path $installerDir 'logo-128.png'
+          $outDialog = Join-Path $installerDir 'dialog_with_logo.bmp'
+          if (-not (Test-Path $dialogBase)) { Write-Host "Dialog base not found: $dialogBase"; exit 0 }
+          if (-not (Test-Path $smallLogo)) { Write-Host "Small logo not found: $smallLogo"; exit 0 }
+          Write-Host "Composing $outDialog from $dialogBase + $smallLogo"
+          magick convert $dialogBase -resize 493x312 ^
+            ( $smallLogo -resize 96x96 ) -gravity northwest -geometry +24+24 -composite $outDialog
+          Write-Host "Composed dialog bitmap:"; Get-Item $outDialog | Format-List Name,Length
+
       - name: Prepare executable for WiX
         if: runner.os == 'Windows'
         shell: powershell
