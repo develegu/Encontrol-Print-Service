@@ -39,14 +39,19 @@
     <WixVariable Id="WixUILicenseRtf" Value="License.rtf" />
     <!-- Imágenes personalizadas para el UI del instalador -->
     <!-- Banner: 493 x 58 px, Dialog: 493 x 312 px -->
-    <WixVariable Id="WixUIBannerBmp" Value="installer\\banner.bmp" />
-    <WixVariable Id="WixUIDialogBmp" Value="installer\\logo.bmp" />
+    <!-- Usar recursos Binary para que WiX embeba las imágenes en el MSI -->
+    <WixVariable Id="WixUIBannerBmp" Value="BannerBmp" />
+    <WixVariable Id="WixUIDialogBmp" Value="DialogBmp" />
     
 
   </Product>
 
   <!-- Definición de fragmentos -->
   <Fragment>
+    <!-- Binaries para las imágenes del UI -->
+    <Binary Id="BannerBmp" SourceFile="installer\\banner.bmp" />
+    <Binary Id="DialogBmp" SourceFile="installer\\logo.bmp" />
+
     <!-- Estructura de directorios -->
     <Directory Id="TARGETDIR" Name="SourceDir">
       <Directory Id="ProgramFilesFolder">
@@ -93,11 +98,11 @@
         <ServiceControl Id="StartService" Start="install" Stop="both" Remove="uninstall" Name="EnControlPrintService" Wait="yes" />
       </Component>
 
-      <!-- README -->
+      <!-- README (usar README.md del repo) -->
       <Component Id="ReadmeFile" Guid="BCDEF123-4567-8901-BCDE-F12345678901">
         <File 
-          Id="README.txt" 
-          Source="README.txt" 
+          Id="README.md" 
+          Source="README.md" 
           KeyPath="yes" />
       </Component>
 
@@ -116,7 +121,7 @@
           Id="ReadmeShortcut"
           Name="Ver Instrucciones"
           Description="Instrucciones de uso del servicio"
-          Target="[INSTALLFOLDER]README.txt"
+          Target="[INSTALLFOLDER]README.md"
           WorkingDirectory="INSTALLFOLDER"/>
 
         <!-- Registro para permitir desinstalación -->

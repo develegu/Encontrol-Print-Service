@@ -79,7 +79,13 @@ jobs:
         run: |
           $src = "target\${{ matrix.target }}\release\${{ matrix.artifact_name }}"
           $dstDir = "target\release"
-          if (-not (Test-Path $src)) { Write-Host "Source exe not found: $src"; exit 0 }
+          Write-Host "Checking for built exe at: $src"
+          if (-not (Test-Path $src)) {
+            Write-Host "ERROR: Source exe not found: $src"
+            Write-Host "Listing target folders for debugging:";
+            Get-ChildItem -Recurse -Force -ErrorAction SilentlyContinue target | Select-Object -First 200 | ForEach-Object { Write-Host $_.FullName }
+            exit 1
+          }
           New-Item -ItemType Directory -Force -Path $dstDir | Out-Null
           Copy-Item -Path $src -Destination (Join-Path $dstDir 'en-control-print-service.exe') -Force
 
