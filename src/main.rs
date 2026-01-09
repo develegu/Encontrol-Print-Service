@@ -14,6 +14,7 @@ use windows_service::{
         ServiceControl, ServiceControlAccept, ServiceExitCode, ServiceState, ServiceStatus,
         ServiceType,
     },
+    service_control_handler::ServiceControlHandlerResult,
 };
 
 mod printer;
