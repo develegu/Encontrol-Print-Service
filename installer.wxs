@@ -133,6 +133,16 @@
           Target="[INSTALLFOLDER]README.md"
           WorkingDirectory="INSTALLFOLDER"/>
 
+        <!-- Acceso directo al ejecutable en el menú Inicio con nuestro icono -->
+        <Shortcut
+          Id="StartMenuShortcut"
+          Name="En-Control Print Service"
+          Description="Inicia el servicio En-Control Print Service"
+          Target="[INSTALLFOLDER]en-control-print-service.exe"
+          WorkingDirectory="INSTALLFOLDER"
+          Icon="AppIcon"
+          IconIndex="0" />
+
         <!-- Registro para permitir desinstalación -->
         <RemoveFolder Id="ApplicationProgramsFolder" On="uninstall"/>
         
