@@ -1,35 +1,65 @@
-# Generar iconos para el instalador
+# Generar imágenes del instalador
 
-Este documento explica cómo generar `installer/logo.ico` y `installer/banner.bmp` a partir de una imagen fuente.
+Este documento explica cómo generar los recursos del instalador a partir de una imagen fuente: [assets/logo-source.png](assets/logo-source.png).
 
-Requisitos:
+Recursos generados:
 
-- ImageMagick (`convert`) instalado y en PATH.
+- [installer/ico.ico](installer/ico.ico): icono multi-resolución.
+- [installer/banner.bmp](installer/banner.bmp): banner WiX UI (493x58).
+- [installer/logo-128.png](installer/logo-128.png) y [installer/logo-64.png](installer/logo-64.png): variantes de logo.
+- [installer/dialog_with_logo.bmp](installer/dialog_with_logo.bmp): fondo de diálogo (493x312).
+- [installer/dialog_base.bmp](installer/dialog_base.bmp) y [installer/dialog_with_logo.bmp](installer/dialog_with_logo.bmp): fondo de diálogo (493x312); el logo se compone a la izquierda.
 
-Pasos:
+## Windows (CMD) con ruta absoluta
 
-1. Coloca la imagen fuente en `assets/logo-source.png` (preferible PNG con fondo transparente).
+Verifica tu instalación de ImageMagick:
 
-2. Desde la carpeta `scripts` ejecuta (Windows PowerShell):
+```bat
+magick.exe -version
+```
+
+Si está instalado en `C:\Program Files\ImageMagick-7.1.2-Q16-HDRI\`, ejecuta desde la raíz del repo:
+
+```bat
+"C:\Program Files\ImageMagick-7.1.2-Q16-HDRI\magick.exe" assets\logo-source.png -background transparent -define icon:auto-resize=256,128,64,48,32,16 installer\ico.ico
+"C:\Program Files\ImageMagick-7.1.2-Q16-HDRI\magick.exe" assets\logo-source.png -resize 493x58 -gravity center -background white -extent 493x58 installer\banner.bmp
+"C:\Program Files\ImageMagick-7.1.2-Q16-HDRI\magick.exe" assets\logo-source.png -resize 128x128 installer\logo-128.png
+"C:\Program Files\ImageMagick-7.1.2-Q16-HDRI\magick.exe" assets\logo-source.png -resize 64x64 installer\logo-64.png
+"C:\Program Files\ImageMagick-7.1.2-Q16-HDRI\magick.exe" -size 493x312 canvas:white installer\dialog_with_logo.bmp
+```
+
+## PowerShell (equivalente)
 
 ```powershell
-.\generate-icons.ps1 -SourcePath ..\assets\logo-source.png
+& 'C:\Program Files\ImageMagick-7.1.2-Q16-HDRI\magick.exe' 'assets/logo-source.png' -background transparent -define icon:auto-resize=256,128,64,48,32,16 'installer/ico.ico'
+& 'C:\Program Files\ImageMagick-7.1.2-Q16-HDRI\magick.exe' 'assets/logo-source.png' -resize 493x58 -gravity center -background white -extent 493x58 'installer/banner.bmp'
+& 'C:\Program Files\ImageMagick-7.1.2-Q16-HDRI\magick.exe' 'assets/logo-source.png' -resize 128x128 'installer/logo-128.png'
+& 'C:\Program Files\ImageMagick-7.1.2-Q16-HDRI\magick.exe' 'assets/logo-source.png' -resize 64x64 'installer/logo-64.png'
+& 'C:\Program Files\ImageMagick-7.1.2-Q16-HDRI\magick.exe' -size 493x312 'canvas:white' 'installer/dialog_with_logo.bmp'
 ```
 
-o en macOS / Linux (bash):
+## Git Bash (MSYS) con ruta `/c/...`
 
 ```bash
-./generate-icons.sh ../assets/logo-source.png
+"/c/Program Files/ImageMagick-7.1.2-Q16-HDRI/magick.exe" assets/logo-source.png -background transparent -define icon:auto-resize=256,128,64,48,32,16 installer/logo.ico
+"/c/Program Files/ImageMagick-7.1.2-Q16-HDRI/magick.exe" assets/logo-source.png -resize 493x58 -gravity center -background white -extent 493x58 installer/banner.bmp
+"/c/Program Files/ImageMagick-7.1.2-Q16-HDRI/magick.exe" assets/logo-source.png -resize 128x128 installer/logo-128.png
+"/c/Program Files/ImageMagick-7.1.2-Q16-HDRI/magick.exe" assets/logo-source.png -resize 64x64 installer/logo-64.png
+"/c/Program Files/ImageMagick-7.1.2-Q16-HDRI/magick.exe" -size 493x312 canvas:white installer/dialog_with_logo.bmp
 ```
 
-3. Esto generará:
+## Scripts disponibles (opcional)
 
-- `installer/logo.ico` — icono multi-resolución para Add/Remove Programs
-- `installer/banner.bmp` — banner para WiX UI (493x58)
+- [installer/generar-imagenes-directo.bat](installer/generar-imagenes-directo.bat): autodetecta ImageMagick (7.1.x) y genera todos los recursos. Ejecutar en CMD.
+- [installer/generar-imagenes.ps1](installer/generar-imagenes.ps1): equivalente en PowerShell.
 
-4. Vuelve a compilar el instalador (`crear-instalador.bat`) para incluir los recursos.
+Tras generar los recursos, compila el MSI:
+
+```bat
+crear-instalador.bat
+```
 
 Notas:
 
-- Si quieres que yo genere los iconos directamente, sube la imagen fuente `assets/logo-source.png` al repo o pega su base64 aquí y lo genero y añado por ti.
-- Para distribución pública en macOS/Windows considera `codesign` y notarización/firma del instalador.
+- Asegúrate de tener [assets/logo-source.png](assets/logo-source.png) con fondo transparente para mejores resultados.
+- El banner usa fondo blanco y centra el logo; si prefieres fondo gris claro, cambia `background white` por `background "#F3F4F6"`.
