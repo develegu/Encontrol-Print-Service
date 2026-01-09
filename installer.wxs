@@ -18,6 +18,10 @@
       Description="Service local de impresión para En-Control PWA"
       Comments="v0.1.0" />
 
+    <!-- Icon for Add/Remove Programs and installer UI -->
+    <Icon Id="AppIcon" SourceFile="installer\\logo.ico" />
+    <Property Id="ARPPRODUCTICON" Value="AppIcon" />
+
     <!-- Reglas de actualización -->
     <MajorUpgrade DowngradeErrorMessage="A newer version is already installed." />
     
@@ -33,13 +37,10 @@
     <!-- Interfaz de usuario -->
     <UIRef Id="WixUI_Minimal"/>
     <WixVariable Id="WixUILicenseRtf" Value="License.rtf" />
-    <!-- 
-      Para usar logos personalizados, las imagenes deben tener tamaños exactos:
-      Banner: 493 x 58 px
-      Dialog: 493 x 312 px
-    <WixVariable Id="WixUIBannerBmp" Value="installer/logo.bmp" />
-    <WixVariable Id="WixUIDialogBmp" Value="installer/logo.bmp" />
-    -->
+    <!-- Imágenes personalizadas para el UI del instalador -->
+    <!-- Banner: 493 x 58 px, Dialog: 493 x 312 px -->
+    <WixVariable Id="WixUIBannerBmp" Value="installer\\banner.bmp" />
+    <WixVariable Id="WixUIDialogBmp" Value="installer\\logo.bmp" />
     
 
   </Product>
@@ -96,7 +97,7 @@
       <Component Id="ReadmeFile" Guid="BCDEF123-4567-8901-BCDE-F12345678901">
         <File 
           Id="README.txt" 
-          Source="README_INSTALACION.txt" 
+          Source="README.txt" 
           KeyPath="yes" />
       </Component>
 
