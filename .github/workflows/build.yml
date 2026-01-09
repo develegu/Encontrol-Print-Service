@@ -51,6 +51,19 @@ jobs:
       - name: Build release
         run: cargo build --release --target ${{ matrix.target }}
 
+      - name: Show build artifacts
+        shell: bash
+        run: |
+          echo "Listing target for debugging..."
+          if [ -d "target/${{ matrix.target }}/release" ]; then
+            ls -la "target/${{ matrix.target }}/release" || true
+          fi
+          if [ -d "target/release" ]; then
+            ls -la "target/release" || true
+          fi
+          echo "Find any en-control-print-service files:";
+          find target -maxdepth 4 -type f -name "en-control-print-service*" -print || true
+
       - name: Prepare artifact
         shell: bash
         run: |
