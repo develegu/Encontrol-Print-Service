@@ -1,7 +1,8 @@
 @echo off
 setlocal EnableExtensions EnableDelayedExpansion
-rem Script para generar fondos solidos del instalador (sin logo)
-rem Crea installer\dialog_with_logo.bmp (493x312) y opcionalmente installer\banner.bmp (493x58)
+rem Script para generar fondos sólidos del instalador (sin logo)
+rem Por defecto SOLO crea installer\dialog_with_logo.bmp (493x312)
+rem Opcional: pasar --banner o -b para regenerar tambien installer\banner.bmp (493x58)
 
 title Generar fondos solidos (dialog/banner)
 pushd "%~dp0\.." >nul
@@ -15,17 +16,26 @@ if not exist installer (
 rem Color configurable en formato #RRGGBB (por defecto: gris claro #F3F4F6)
 set "BG_COLOR=%~1"
 if "%BG_COLOR%"=="" set "BG_COLOR=#F3F4F6"
-echo Usando color de fondo: %BG_COLOR%
+set "DO_BANNER=%~2"
+set "GEN_BANNER=no"
+if /I "%DO_BANNER%"=="--banner" set "GEN_BANNER=yes"
+if /I "%DO_BANNER%"=="-b" set "GEN_BANNER=yes"
+echo Usando color de fondo: %BG_COLOR%  | Generar banner: %GEN_BANNER%
 
 where magick >nul 2>&1
 if %ERRORLEVEL% EQU 0 (
-    echo [ImageMagick] Generando dialogo 493x312 y banner 493x58...
-    magick -size 493x312 canvas:"%BG_COLOR%" installer\dialog_with_logo.bmp
-    magick -size 493x58  canvas:"%BG_COLOR%" installer\banner.bmp
+        echo [ImageMagick] Generando dialogo 493x312...
+        magick -size 493x312 canvas:"%BG_COLOR%" installer\dialog_with_logo.bmp
+        if /I "%GEN_BANNER%"=="yes" (
+                echo [ImageMagick] Generando banner 493x58...
+                magick -size 493x58  canvas:"%BG_COLOR%" installer\banner.bmp
+        ) else (
+                echo [ImageMagick] Banner existente se mantiene sin cambios.
+        )
 ) else (
     echo [AVISO] ImageMagick no esta en PATH. Intentando fallback con PowerShell...
-    powershell -NoProfile -ExecutionPolicy Bypass -Command "
-      param([string]$hex)
+        powershell -NoProfile -ExecutionPolicy Bypass -Command "
+            param([string]$hex,[string]$genBanner)
       if (-not $hex) { $hex = '#F3F4F6' }
       function New-SolidBmp {
         param($w,$h,$out)
@@ -41,8 +51,8 @@ if %ERRORLEVEL% EQU 0 (
         $gdi.Dispose(); $brush.Dispose(); $bmp.Dispose()
       }
       New-SolidBmp 493 312 'installer\\dialog_with_logo.bmp'
-      New-SolidBmp 493 58  'installer\\banner.bmp'
-    " "%BG_COLOR%"
+            if ($genBanner -and ($genBanner.ToLower() -eq 'yes')) { New-SolidBmp 493 58  'installer\\banner.bmp' } else { Write-Host '[PS] Banner existente se mantiene sin cambios.' }
+        " "%BG_COLOR%" "%GEN_BANNER%"
 )
 
 if exist installer\dialog_with_logo.bmp (
@@ -53,8 +63,9 @@ if exist installer\dialog_with_logo.bmp (
     echo Listado de installer/:
     dir installer /b
     echo.
-    echo Listo. WiX usara: installer\dialog_with_logo.bmp y installer\banner.bmp
-    echo Puedes cambiar el color: generar-dialogo.bat #E5E7EB
+    echo Listo. WiX usara installer\dialog_with_logo.bmp (y banner solo si lo regeneraste).
+    echo Cambiar color: generar-dialogo.bat #E5E7EB
+    echo Incluir banner: generar-dialogo.bat #E5E7EB --banner
     pause
     exit /b 0
 ) else (

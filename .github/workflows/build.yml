@@ -105,7 +105,8 @@ jobs:
             & magick $src -resize 64x64 installer\logo-64.png
             # Compose dialog base and overlay small logo
             & magick $src -resize 493x312 installer\dialog_base.bmp
-            & magick installer\dialog_base.bmp ( installer\logo-128.png -resize 96x96 ) -gravity northwest -geometry +24+24 -composite installer\dialog_with_logo.bmp
+            # Use 'magick composite' to avoid PowerShell parentheses parsing issues
+            & magick composite -geometry +24+24 installer\logo-128.png installer\dialog_base.bmp installer\dialog_with_logo.bmp
             Write-Host "Installer images generated:"; Get-ChildItem installer | ForEach-Object { Write-Host $_.FullName }
           } else {
             Write-Host "assets\\logo-source.png not found; skipping image generation"
@@ -176,7 +177,7 @@ jobs:
           $readme = "README.md"
           $banner = "installer\banner.bmp"
           $dialog = "installer\dialog_with_logo.bmp"
-          $ico = "installer\logo.ico"
+          $ico = "installer\ico.ico"
           $allOk = $true
           Write-Host "Verifying WiX inputs..."
           foreach ($f in @($exe, $readme, $banner, $ico)) {
