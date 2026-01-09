@@ -282,7 +282,7 @@ fn my_service_main(arguments: Vec<std::ffi::OsString>) {
 fn run_service(_arguments: Vec<std::ffi::OsString>) -> windows_service::Result<()> {
     let (shutdown_tx, shutdown_rx) = std::sync::mpsc::channel();
     
-    let event_handler = move |control_event| -> ServiceControlHandlerResult {
+    let event_handler = move |control_event| -> windows_service::service_control_handler::ServiceControlHandlerResult {
         match control_event {
             ServiceControl::Stop => {
                 // Signal shutdown
@@ -295,7 +295,7 @@ fn run_service(_arguments: Vec<std::ffi::OsString>) -> windows_service::Result<(
     };
 
     // Register system service event handler
-    let status_handle = service_control_handler::register("EnControlPrintService", event_handler)?;
+    let status_handle = windows_service::service_control_handler::register("EnControlPrintService", event_handler)?;
 
     // Tell the system that the service is running
     let next_status = ServiceStatus {
@@ -351,7 +351,7 @@ fn main() -> std::io::Result<()> {
 
     // Check if running as a windows service
     #[cfg(windows)]
-    match service_dispatcher::start("EnControlPrintService", ffi_service_main) {
+    match windows_service::service_dispatcher::start("EnControlPrintService", ffi_service_main) {
         Ok(_) => Ok(()),
         Err(_) => {
             // If failing to start as service, run as console app (e.g. debugging)
