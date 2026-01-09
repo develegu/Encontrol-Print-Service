@@ -14,8 +14,9 @@ use windows_service::{
         ServiceControl, ServiceControlAccept, ServiceExitCode, ServiceState, ServiceStatus,
         ServiceType,
     },
-    service_control_handler::{self, ServiceControlHandlerResult},
-    service_dispatcher,
+
+    #[cfg(windows)]
+    define_windows_service!(ffi_service_main, my_service_main);
 };
 
 mod printer;
