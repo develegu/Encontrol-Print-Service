@@ -92,7 +92,7 @@ jobs:
           light -ext WixUIExtension -out EnControlPrintService.msi installer.wixobj
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.asset_name }}
           path: target/${{ matrix.target }}/release/${{ matrix.asset_name }}*
@@ -100,7 +100,7 @@ jobs:
       # Upload MSI if present
       - name: Upload MSI artifact
         if: runner.os == 'Windows'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: EnControlPrintService.msi
           path: EnControlPrintService.msi
@@ -113,7 +113,7 @@ jobs:
 
     steps:
       - name: Download all artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           path: ./artifacts
 
