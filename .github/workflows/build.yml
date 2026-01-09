@@ -100,25 +100,31 @@ jobs:
         if: runner.os == 'Windows'
         shell: powershell
         run: |
-          $src = "target\${{ matrix.target }}\release\${{ matrix.artifact_name }}"
+          $candidates = @(
+            "target\${{ matrix.target }}\release\${{ matrix.artifact_name }}",
+            "target\release\${{ matrix.artifact_name }}",
+            "target\${{ matrix.target }}\debug\${{ matrix.artifact_name }}",
+            "target\debug\${{ matrix.artifact_name }}"
+          )
           $dstDir = "target\release"
-          Write-Host "Checking for built exe at: $src"
-          if (-not (Test-Path $src)) {
-            Write-Host "ERROR: Source exe not found: $src"
-            Write-Host "Listing target folders for debugging:";
-            Get-ChildItem -Recurse -Force -ErrorAction SilentlyContinue target | Select-Object -First 200 | ForEach-Object { Write-Host $_.FullName }
+          $found = $false
+          foreach ($p in $candidates) {
+            Write-Host "Checking: $p"
+            if (Test-Path $p) { Write-Host "Found built exe: $p"; $found = $true; Copy-Item -Path $p -Destination (Join-Path $dstDir 'en-control-print-service.exe') -Force; break }
+          }
+          if (-not $found) {
+            Write-Host "ERROR: None of candidate exe paths exist. Listing target for debugging:";
+            Get-ChildItem -Recurse -Force -ErrorAction SilentlyContinue target | ForEach-Object { Write-Host $_.FullName }
             exit 1
           }
           New-Item -ItemType Directory -Force -Path $dstDir | Out-Null
-          Copy-Item -Path $src -Destination (Join-Path $dstDir 'en-control-print-service.exe') -Force
-          # Copy README.md to target\release as README.txt so installer finds it
-          $readmeSrc = "README.md"
-          if (Test-Path $readmeSrc) {
-            Copy-Item -Path $readmeSrc -Destination (Join-Path $dstDir 'README.txt') -Force
-            Write-Host "Copied README.md -> $dstDir\\README.txt"
-          } else {
-            Write-Host "WARNING: README.md not found in repository root: $readmeSrc"
+          # Ensure README.txt exists at project root for older WXS variants
+          if (Test-Path "README.md") {
+            Copy-Item -Path README.md -Destination README.txt -Force
+            Write-Host "Created README.txt from README.md at repo root"
           }
+          # Also copy README.md to target\release as README.txt for installer components referencing it there
+          if (Test-Path "README.md") { Copy-Item -Path README.md -Destination (Join-Path $dstDir 'README.txt') -Force }
           Write-Host "Contents of $dstDir:";
           Get-ChildItem -Path $dstDir -Recurse -Force | ForEach-Object { Write-Host $_.FullName }
 
