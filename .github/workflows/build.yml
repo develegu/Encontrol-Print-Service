@@ -88,6 +88,16 @@ jobs:
           }
           New-Item -ItemType Directory -Force -Path $dstDir | Out-Null
           Copy-Item -Path $src -Destination (Join-Path $dstDir 'en-control-print-service.exe') -Force
+          # Copy README.md to target\release as README.txt so installer finds it
+          $readmeSrc = "README.md"
+          if (Test-Path $readmeSrc) {
+            Copy-Item -Path $readmeSrc -Destination (Join-Path $dstDir 'README.txt') -Force
+            Write-Host "Copied README.md -> $dstDir\\README.txt"
+          } else {
+            Write-Host "WARNING: README.md not found in repository root: $readmeSrc"
+          }
+          Write-Host "Contents of $dstDir:";
+          Get-ChildItem -Path $dstDir -Recurse -Force | ForEach-Object { Write-Host $_.FullName }
 
       - name: Build MSI with WiX
         if: runner.os == 'Windows'
