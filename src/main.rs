@@ -15,13 +15,12 @@ use windows_service::{
         ServiceType,
     },
 
-    #[cfg(windows)]
-    define_windows_service!(ffi_service_main, my_service_main);
 };
 
 mod printer;
 mod updater;
 
+#[cfg(windows)]
 define_windows_service!(ffi_service_main, my_service_main);
 
 // Estructura compatible con Zebra Browser Print
