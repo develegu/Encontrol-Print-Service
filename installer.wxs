@@ -39,19 +39,15 @@
     <WixVariable Id="WixUILicenseRtf" Value="License.rtf" />
     <!-- Imágenes personalizadas para el UI del instalador -->
     <!-- Banner: 493 x 58 px, Dialog: 493 x 312 px -->
-    <!-- Usar recursos Binary para que WiX embeba las imágenes en el MSI -->
-    <WixVariable Id="WixUIBannerBmp" Value="BannerBmp" />
-    <WixVariable Id="WixUIDialogBmp" Value="DialogBmp" />
+    <!-- Indicar la ruta a los BMP para que WiX los incluya en el MSI -->
+    <WixVariable Id="WixUIBannerBmp" Value="installer\\banner.bmp" />
+    <WixVariable Id="WixUIDialogBmp" Value="installer\\logo.bmp" />
     
 
   </Product>
 
   <!-- Definición de fragmentos -->
   <Fragment>
-    <!-- Binaries para las imágenes del UI -->
-    <Binary Id="BannerBmp" SourceFile="installer\\banner.bmp" />
-    <Binary Id="DialogBmp" SourceFile="installer\\logo.bmp" />
-
     <!-- Estructura de directorios -->
     <Directory Id="TARGETDIR" Name="SourceDir">
       <Directory Id="ProgramFilesFolder">
