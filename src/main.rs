@@ -310,7 +310,7 @@ async fn write_to_printer(body: web::Bytes) -> HttpResponse {
             }
         }
         Err(e) => {
-            error!("❌ No se pudo obtener estado de impresora: {}", e);
+            error!("❌ No se pudo obtener estado de impresora en {}: {}", if cfg!(windows) { "Windows" } else { "Mac" }, e);
             // No bloqueamos la impresión si el estado no se pudo leer, pero informamos
         }
     }

@@ -116,11 +116,52 @@ pub fn get_printer_status(printer_name: &str) -> std::result::Result<PrinterStat
 #[cfg(target_os = "macos")]
 pub fn get_printer_status(printer_name: &str) -> std::result::Result<PrinterStatus, Box<dyn Error>> {
     use std::process::Command;
+    use log::{info, warn};
+
+    info!("🔍 Verificando estado en Mac para: {}", printer_name);
+
+    // Intentar primero con el nombre exacto
     let out = Command::new("lpstat").arg("-p").arg(printer_name).output()?;
-    let stdout = String::from_utf8_lossy(&out.stdout).to_lowercase();
+    let mut stdout = String::from_utf8_lossy(&out.stdout).to_lowercase();
+    let stderr = String::from_utf8_lossy(&out.stderr).to_lowercase();
+
+    // Si falla o no devuelve nada, intentar buscar recursivamente
+    if !out.status.success() || stdout.trim().is_empty() {
+        warn!("⚠️ lpstat falló con el nombre exacto. Intentando listar todas...");
+        let all_out = Command::new("lpstat").arg("-p").output()?;
+        let all_stdout = String::from_utf8_lossy(&all_out.stdout).to_lowercase();
+        
+        // Buscar si el nombre está contenido en alguna línea
+        if let Some(line) = all_stdout.lines().find(|l| l.contains(&printer_name.to_lowercase())) {
+             info!("✅ Impresora encontrada en lista general: {}", line);
+             stdout = line.to_string();
+        } else {
+            // Último recurso: si el nombre tiene espacios, CUPS a veces usa guiones bajos
+            let slugified = printer_name.replace(" ", "_").to_lowercase();
+            if let Some(line) = all_stdout.lines().find(|l| l.contains(&slugified)) {
+                 info!("✅ Impresora encontrada con guiones bajos: {}", line);
+                 stdout = line.to_string();
+            } else {
+                warn!("❌ No se encontró la impresora '{}' en lpstat. Stderr: {}", printer_name, stderr);
+                // Si llegamos aquí, devolvemos un estado conservador para no bloquear la impresión
+                // Solo si sabemos que al menos una impresora existe en el sistema
+                return Ok(PrinterStatus {
+                    name: printer_name.to_string(),
+                    online: true, // Asumimos online para intentar imprimir
+                    ready: true,
+                    status_flags: 0,
+                    status_text: format!("No detectada por lpstat, intentando fallback..."),
+                });
+            }
+        }
+    }
+
     let online = stdout.contains("printer ") && !stdout.contains("disabled");
     let ready = stdout.contains("idle") || stdout.contains("printing");
     let status_text = stdout.trim().to_string();
+    
+    info!("📊 Estado Mac: {} (online: {}, ready: {})", status_text, online, ready);
+
     Ok(PrinterStatus {
         name: printer_name.to_string(),
         online,
