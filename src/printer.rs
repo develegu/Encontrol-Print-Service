@@ -265,28 +265,37 @@ unsafe fn print_raw_unsafe(printer_name: &str, data: &str) -> windows::core::Res
 
 
 /// Envía datos RAW a la impresora en macOS
+/// Envía datos RAW a la impresora en macOS
 #[cfg(target_os = "macos")]
 pub fn print_raw(printer_name: &str, data: &str) -> std::result::Result<(), Box<dyn Error>> {
     use std::process::{Command, Stdio};
     use std::io::Write;
+    use log::{info, error};
     
+    info!("🖨️  (Mac) Intentando imprimir en '{}' con lpr...", printer_name);
+
     let mut child = Command::new("lpr")
         .arg("-P")
         .arg(printer_name)
         .arg("-o")
         .arg("raw")
         .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
         .spawn()?;
     
     if let Some(mut stdin) = child.stdin.take() {
         stdin.write_all(data.as_bytes())?;
     }
     
-    let status = child.wait()?;
+    let output = child.wait_with_output()?;
     
-    if status.success() {
+    if output.status.success() {
+        info!("✅ Impresión exitosa con lpr");
         Ok(())
     } else {
-        Err("Error imprimiendo con lpr".into())
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        error!("❌ Error imprimiendo con lpr: {}", stderr);
+        Err(format!("lpr error: {}", stderr.trim()).into())
     }
 }
