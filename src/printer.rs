@@ -274,7 +274,7 @@ pub fn print_raw(printer_name: &str, data: &str) -> std::result::Result<(), Box<
     
     info!("🖨️  (Mac) Intentando imprimir en '{}' con lpr...", printer_name);
 
-    let mut child = Command::new("lpr")
+    let mut child = Command::new("/usr/bin/lpr")
         .arg("-P")
         .arg(printer_name)
         .arg("-o")
