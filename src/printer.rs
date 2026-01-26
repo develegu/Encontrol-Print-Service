@@ -265,37 +265,64 @@ unsafe fn print_raw_unsafe(printer_name: &str, data: &str) -> windows::core::Res
 
 
 /// Envía datos RAW a la impresora en macOS
-/// Envía datos RAW a la impresora en macOS
 #[cfg(target_os = "macos")]
 pub fn print_raw(printer_name: &str, data: &str) -> std::result::Result<(), Box<dyn Error>> {
     use std::process::{Command, Stdio};
     use std::io::Write;
-    use log::{info, error};
-    
-    info!("🖨️  (Mac) Intentando imprimir en '{}' con lpr...", printer_name);
+    use std::path::Path;
+    use log::{info, error, warn};
 
-    let mut child = Command::new("/usr/bin/lpr")
-        .arg("-P")
-        .arg(printer_name)
-        .arg("-o")
-        .arg("raw")
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()?;
-    
-    if let Some(mut stdin) = child.stdin.take() {
-        stdin.write_all(data.as_bytes())?;
+    // Helper function to try a command
+    let try_print = |cmd: &str, args: &[&str]| -> Result<(), String> {
+        if !Path::new(cmd).exists() {
+            return Err(format!("Binary {} does not exist", cmd));
+        }
+
+        info!("🖨️  (Mac) Ejecutando: {} {}", cmd, args.join(" "));
+
+        let mut child = Command::new(cmd)
+            .args(args)
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .map_err(|e| format!("Spawn error for {}: {}", cmd, e))?;
+        
+        if let Some(mut stdin) = child.stdin.take() {
+            if let Err(e) = stdin.write_all(data.as_bytes()) {
+                return Err(format!("Failed to write to stdin of {}: {}", cmd, e));
+            }
+        }
+        
+        let output = child.wait_with_output()
+            .map_err(|e| format!("Wait error for {}: {}", cmd, e))?;
+        
+        if output.status.success() {
+            info!("✅ Impresión exitosa con {}", cmd);
+            Ok(())
+        } else {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            Err(format!("{} failed. Stderr: {}. Stdout: {}", cmd, stderr.trim(), stdout.trim()))
+        }
+    };
+
+    // Intento 1: Usar lpr (BSD standard)
+    // lpr -P printer -o raw
+    match try_print("/usr/bin/lpr", &["-P", printer_name, "-o", "raw"]) {
+        Ok(_) => return Ok(()),
+        Err(e) => {
+            warn!("⚠️ lpr falló: {}. Intentando con lp...", e);
+        }
     }
-    
-    let output = child.wait_with_output()?;
-    
-    if output.status.success() {
-        info!("✅ Impresión exitosa con lpr");
-        Ok(())
-    } else {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        error!("❌ Error imprimiendo con lpr: {}", stderr);
-        Err(format!("lpr error: {}", stderr.trim()).into())
+
+    // Intento 2: Usar lp (System V standard)
+    // lp -d printer -o raw
+    match try_print("/usr/bin/lp", &["-d", printer_name, "-o", "raw"]) {
+        Ok(_) => return Ok(()),
+        Err(e) => {
+            error!("❌ lp también falló: {}", e);
+            Err(format!("Printing failed. lpr and lp both failed. Last error: {}", e).into())
+        }
     }
 }
