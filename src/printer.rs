@@ -272,13 +272,23 @@ pub fn print_raw(printer_name: &str, data: &str) -> std::result::Result<(), Box<
     use std::path::Path;
     use log::{info, error, warn};
 
+    let version = "0.2.0";
+    info!("🔍 [v{}] Iniciando proceso de impresión en Mac para: {}", version, printer_name);
+
+    // Diagnóstico previo: ¿Qué dice lpstat?
+    let lpstat = Command::new("/usr/bin/lpstat").arg("-p").output();
+    match lpstat {
+        Ok(out) => info!("📊 Diagnóstico lpstat: {}", String::from_utf8_lossy(&out.stdout).trim()),
+        Err(e) => warn!("⚠️ No se pudo ejecutar lpstat: {}", e),
+    }
+
     // Helper function to try a command
     let try_print = |cmd: &str, args: &[&str]| -> Result<(), String> {
         if !Path::new(cmd).exists() {
-            return Err(format!("Binary {} does not exist", cmd));
+            return Err(format!("Binary {} does not exist on disk", cmd));
         }
 
-        info!("🖨️  (Mac) Ejecutando: {} {}", cmd, args.join(" "));
+        info!("🚀 [v{}] Intentando: {} {}", version, cmd, args.join(" "));
 
         let mut child = Command::new(cmd)
             .args(args)
@@ -286,7 +296,7 @@ pub fn print_raw(printer_name: &str, data: &str) -> std::result::Result<(), Box<
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .spawn()
-            .map_err(|e| format!("Spawn error for {}: {}", cmd, e))?;
+            .map_err(|e| format!("Spawn error for {} [v{}]: {}", cmd, version, e))?;
         
         if let Some(mut stdin) = child.stdin.take() {
             if let Err(e) = stdin.write_all(data.as_bytes()) {
@@ -298,31 +308,39 @@ pub fn print_raw(printer_name: &str, data: &str) -> std::result::Result<(), Box<
             .map_err(|e| format!("Wait error for {}: {}", cmd, e))?;
         
         if output.status.success() {
-            info!("✅ Impresión exitosa con {}", cmd);
+            info!("✅ Impresión exitosa con {} [v{}]", cmd, version);
             Ok(())
         } else {
             let stderr = String::from_utf8_lossy(&output.stderr);
             let stdout = String::from_utf8_lossy(&output.stdout);
-            Err(format!("{} failed. Stderr: {}. Stdout: {}", cmd, stderr.trim(), stdout.trim()))
+            error!("❌ {} falló [v{}]. Stderr: '{}'. Stdout: '{}'", cmd, version, stderr.trim(), stdout.trim());
+            Err(format!("{} [v{}] failed. Error: {}", cmd, version, stderr.trim()))
         }
     };
 
-    // Intento 1: Usar lpr (BSD standard)
-    // lpr -P printer -o raw
+    // Intento 1: lpr con stdin
     match try_print("/usr/bin/lpr", &["-P", printer_name, "-o", "raw"]) {
         Ok(_) => return Ok(()),
-        Err(e) => {
-            warn!("⚠️ lpr falló: {}. Intentando con lp...", e);
+        Err(e) => warn!("⚠️ Fallo lpr con stdin: {}", e),
+    }
+
+    // Intento 2: lp con stdin
+    match try_print("/usr/bin/lp", &["-d", printer_name, "-o", "raw"]) {
+        Ok(_) => return Ok(()),
+        Err(e) => warn!("⚠️ Fallo lp con stdin: {}", e),
+    }
+
+    // Intento 3: A través de archivo temporal (algunos sistemas Mac lo prefieren)
+    info!("🔄 Intentando vía archivo temporal como último recurso...");
+    let temp_path = "/tmp/en_control_print.zpl";
+    if let Ok(mut file) = std::fs::File::create(temp_path) {
+        if file.write_all(data.as_bytes()).is_ok() {
+            let res = try_print("/usr/bin/lpr", &["-P", printer_name, "-o", "raw", temp_path]);
+            let _ = std::fs::remove_file(temp_path);
+            if res.is_ok() { return Ok(()); }
         }
     }
 
-    // Intento 2: Usar lp (System V standard)
-    // lp -d printer -o raw
-    match try_print("/usr/bin/lp", &["-d", printer_name, "-o", "raw"]) {
-        Ok(_) => return Ok(()),
-        Err(e) => {
-            error!("❌ lp también falló: {}", e);
-            Err(format!("Printing failed. lpr and lp both failed. Last error: {}", e).into())
-        }
-    }
+    error!("❌ Todos los métodos de impresión fallaron en Mac [v{}]", version);
+    Err(format!("Error crítico en Mac [v{}]: No se pudo encontrar o ejecutar el sistema de impresión (lpr/lp). Verifique que CUPS esté habilitado.", version).into())
 }
