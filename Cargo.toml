@@ -1,6 +1,6 @@
 [package]
 name = "en-control-print-service"
-version = "0.2.1"
+version = "0.2.2"
 edition = "2021"
 authors = ["En-Control Team"]
 description = "Servicio local de impresión para En-Control PWA"

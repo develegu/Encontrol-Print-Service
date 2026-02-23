@@ -330,7 +330,7 @@ async fn write_to_printer(body: web::Bytes) -> HttpResponse {
             resp.insert_header((HeaderName::from_static("x-printer-message"), HeaderValue::from_str(&msg).unwrap_or(HeaderValue::from_static("Print error"))));
             resp.json(serde_json::json!({
                 "error": msg,
-                "version": "0.2.1"
+                "version": "0.2.2"
             }))
         }
     }
@@ -347,7 +347,7 @@ async fn read_from_printer() -> HttpResponse {
 
 /// GET /hello - Health check (igual que Zebra Browser Print)
 async fn health_check() -> HttpResponse {
-    HttpResponse::Ok().body("En-Control Print Service v0.2.1")
+    HttpResponse::Ok().body("En-Control Print Service v0.2.2")
 }
 
 /// GET /update - Endpoint para verificar actualizaciones
@@ -377,7 +377,7 @@ async fn run_server() -> std::io::Result<()> {
     let bind_address = format!("127.0.0.1:{}", port);
 
     info!("🚀 ===========================================");
-    info!("🚀 En-Control Print Service v0.2.1");
+    info!("🚀 En-Control Print Service v0.2.2");
     info!("🚀 ===========================================");
     info!("📡 Escuchando en: http://{}", bind_address);
     info!("🔧 Endpoints disponibles:");
