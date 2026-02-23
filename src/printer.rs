@@ -272,20 +272,30 @@ pub fn print_raw(printer_name: &str, data: &str) -> std::result::Result<(), Box<
     use std::path::Path;
     use log::{info, error, warn};
 
-    let version = "0.2.0";
+    let version = "0.2.1";
+    let mut errors_log = Vec::new();
+    
     info!("🔍 [v{}] Iniciando proceso de impresión en Mac para: {}", version, printer_name);
 
     // Diagnóstico previo: ¿Qué dice lpstat?
     let lpstat = Command::new("/usr/bin/lpstat").arg("-p").output();
-    match lpstat {
-        Ok(out) => info!("📊 Diagnóstico lpstat: {}", String::from_utf8_lossy(&out.stdout).trim()),
-        Err(e) => warn!("⚠️ No se pudo ejecutar lpstat: {}", e),
-    }
+    let lpstat_info = match lpstat {
+        Ok(out) => {
+            let s = String::from_utf8_lossy(&out.stdout).trim().to_string();
+            info!("📊 Diagnóstico lpstat: {}", s);
+            s
+        },
+        Err(e) => {
+            let s = format!("Error ejecutando lpstat: {}", e);
+            warn!("⚠️ {}", s);
+            s
+        }
+    };
 
     // Helper function to try a command
-    let try_print = |cmd: &str, args: &[&str]| -> Result<(), String> {
+    let mut try_print = |cmd: &str, args: &[&str]| -> Result<(), String> {
         if !Path::new(cmd).exists() {
-            return Err(format!("Binary {} does not exist on disk", cmd));
+            return Err(format!("Archivo {} NO existe en el disco", cmd));
         }
 
         info!("🚀 [v{}] Intentando: {} {}", version, cmd, args.join(" "));
@@ -296,51 +306,67 @@ pub fn print_raw(printer_name: &str, data: &str) -> std::result::Result<(), Box<
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .spawn()
-            .map_err(|e| format!("Spawn error for {} [v{}]: {}", cmd, version, e))?;
+            .map_err(|e| format!("Fallo al lanzar (spawn) {}: {}", cmd, e))?;
         
         if let Some(mut stdin) = child.stdin.take() {
             if let Err(e) = stdin.write_all(data.as_bytes()) {
-                return Err(format!("Failed to write to stdin of {}: {}", cmd, e));
+                return Err(format!("Fallo al escribir en stdin de {}: {}", cmd, e));
             }
         }
         
         let output = child.wait_with_output()
-            .map_err(|e| format!("Wait error for {}: {}", cmd, e))?;
+            .map_err(|e| format!("Fallo al esperar (wait) {}: {}", cmd, e))?;
         
         if output.status.success() {
-            info!("✅ Impresión exitosa con {} [v{}]", cmd, version);
+            info!("✅ [v{}] Impresión exitosa con {}", version, cmd);
             Ok(())
         } else {
-            let stderr = String::from_utf8_lossy(&output.stderr);
-            let stdout = String::from_utf8_lossy(&output.stdout);
-            error!("❌ {} falló [v{}]. Stderr: '{}'. Stdout: '{}'", cmd, version, stderr.trim(), stdout.trim());
-            Err(format!("{} [v{}] failed. Error: {}", cmd, version, stderr.trim()))
+            let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+            let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            let err_msg = format!("{} falló. Stderr: '{}'. Stdout: '{}'", cmd, stderr, stdout);
+            error!("❌ [v{}] {}", version, err_msg);
+            Err(err_msg)
         }
     };
 
     // Intento 1: lpr con stdin
     match try_print("/usr/bin/lpr", &["-P", printer_name, "-o", "raw"]) {
         Ok(_) => return Ok(()),
-        Err(e) => warn!("⚠️ Fallo lpr con stdin: {}", e),
+        Err(e) => errors_log.push(format!("Intento 1 (lpr): {}", e)),
     }
 
     // Intento 2: lp con stdin
     match try_print("/usr/bin/lp", &["-d", printer_name, "-o", "raw"]) {
         Ok(_) => return Ok(()),
-        Err(e) => warn!("⚠️ Fallo lp con stdin: {}", e),
+        Err(e) => errors_log.push(format!("Intento 2 (lp): {}", e)),
     }
 
-    // Intento 3: A través de archivo temporal (algunos sistemas Mac lo prefieren)
-    info!("🔄 Intentando vía archivo temporal como último recurso...");
+    // Intento 3: A través de archivo temporal
+    info!("🔄 [v{}] Intentando vía archivo temporal como último recurso...", version);
     let temp_path = "/tmp/en_control_print.zpl";
-    if let Ok(mut file) = std::fs::File::create(temp_path) {
-        if file.write_all(data.as_bytes()).is_ok() {
-            let res = try_print("/usr/bin/lpr", &["-P", printer_name, "-o", "raw", temp_path]);
+    match std::fs::File::create(temp_path) {
+        Ok(mut file) => {
+            if let Err(e) = file.write_all(data.as_bytes()) {
+                errors_log.push(format!("Error escribiendo archivo temporal: {}", e));
+            } else {
+                match try_print("/usr/bin/lpr", &["-P", printer_name, "-o", "raw", temp_path]) {
+                    Ok(_) => {
+                        let _ = std::fs::remove_file(temp_path);
+                        return Ok(());
+                    },
+                    Err(e) => errors_log.push(format!("Intento 3 (lpr archivo): {}", e)),
+                }
+            }
             let _ = std::fs::remove_file(temp_path);
-            if res.is_ok() { return Ok(()); }
-        }
+        },
+        Err(e) => errors_log.push(format!("No se pudo crear archivo temporal en /tmp: {}", e)),
     }
 
-    error!("❌ Todos los métodos de impresión fallaron en Mac [v{}]", version);
-    Err(format!("Error crítico en Mac [v{}]: No se pudo encontrar o ejecutar el sistema de impresión (lpr/lp). Verifique que CUPS esté habilitado.", version).into())
+    let report = errors_log.join(" | ");
+    error!("❌ [v{}] Todos los métodos fallaron: {}", version, report);
+    
+    Err(format!(
+        "Error crítico [v{}]. Reporte: {}. Diagnóstico Sistema: {}", 
+        version, report, lpstat_info
+    ).into())
 }
