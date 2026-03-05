@@ -6,7 +6,7 @@
     Id="*" 
     Name="En-Control Print Service" 
     Language="1033" 
-    Version="0.1.0" 
+    Version="$(var.Version)" 
     Manufacturer="En-Control Team" 
     UpgradeCode="12345678-1234-1234-1234-123456789012">
     
@@ -16,7 +16,7 @@
       Compressed="yes" 
       InstallScope="perMachine" 
       Description="Service local de impresión para En-Control PWA"
-      Comments="v0.1.0" />
+      Comments="v$(var.Version)" />
 
     <!-- Icon for Add/Remove Programs and installer UI -->
     <Icon Id="AppIcon" SourceFile="installer\\ico.ico" />

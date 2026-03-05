@@ -21,9 +21,16 @@ if %ERRORLEVEL% NEQ 0 (
 )
 
 echo.
-echo 3. Generando Instalador MSI (WiX Toolset)...
+echo 3. Extrayendo version de Cargo.toml...
+for /f "tokens=2 delims==" %%a in ('findstr /r "^version[ ]*=" Cargo.toml') do set VERSION=%%a
+set VERSION=%VERSION: =%
+set VERSION=%VERSION:"=%
+echo    Version detectada: %VERSION%
+
+echo.
+echo 4. Generando Instalador MSI (WiX Toolset)...
 set "WIX_PATH=C:\Program Files (x86)\WiX Toolset v3.14\bin"
-"%WIX_PATH%\candle" installer.wxs
+"%WIX_PATH%\candle" -dVersion=%VERSION% installer.wxs
 if %ERRORLEVEL% NEQ 0 (
     echo [ERROR] Fallo al ejecutar 'candle'. Verifica WiX Toolset.
     pause

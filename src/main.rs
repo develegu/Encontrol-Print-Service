@@ -347,7 +347,7 @@ async fn read_from_printer() -> HttpResponse {
 
 /// GET /hello - Health check (igual que Zebra Browser Print)
 async fn health_check() -> HttpResponse {
-    HttpResponse::Ok().body("En-Control Print Service v0.2.2")
+    HttpResponse::Ok().body(concat!("En-Control Print Service v", env!("CARGO_PKG_VERSION")))
 }
 
 /// GET /update - Endpoint para verificar actualizaciones
@@ -377,9 +377,15 @@ async fn run_server() -> std::io::Result<()> {
     let bind_address = format!("127.0.0.1:{}", port);
 
     info!("🚀 ===========================================");
-    info!("🚀 En-Control Print Service v0.2.2");
+    info!("🚀 En-Control Print Service v{}", env!("CARGO_PKG_VERSION"));
     info!("🚀 ===========================================");
     info!("📡 Escuchando en: http://{}", bind_address);
+
+    // Iniciar ciclo de auto-actualización en segundo plano cada 6 horas
+    tokio::spawn(async {
+        updater::auto_update_loop().await;
+    });
+
     info!("🔧 Endpoints disponibles:");
     info!("   GET  /hello      - Health check");
     info!("   GET  /available  - Lista de impresoras");
