@@ -26,6 +26,11 @@ jobs:
             artifact_name: en-control-print-service
             asset_name: en-control-print-service-macos-arm64
 
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifact_name: en-control-print-service.exe
+            asset_name: en-control-print-service-windows-x64
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -59,22 +64,26 @@ jobs:
           echo "Find any en-control-print-service files:";
           find target -maxdepth 4 -type f -name "en-control-print-service*" -print || true
 
-      - name: Prepare artifact (macOS)
+      - name: Prepare artifact
         shell: bash
         run: |
           set -e
           cd target/${{ matrix.target }}/release
           if [ -f "${{ matrix.artifact_name }}" ]; then
-            chmod +x "${{ matrix.artifact_name }}"
-            strip "${{ matrix.artifact_name }}" || true
-            tar -czf "${{ matrix.asset_name }}.tar.gz" "${{ matrix.artifact_name }}"
+            if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+              7z a -tzip "${{ matrix.asset_name }}.zip" "${{ matrix.artifact_name }}"
+            else
+              chmod +x "${{ matrix.artifact_name }}"
+              strip "${{ matrix.artifact_name }}" || true
+              tar -czf "${{ matrix.asset_name }}.tar.gz" "${{ matrix.artifact_name }}"
+            fi
           fi
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.asset_name }}
-          path: target/${{ matrix.target }}/release/${{ matrix.asset_name }}.tar.gz
+          path: target/${{ matrix.target }}/release/${{ matrix.asset_name }}.*
 
   release:
     name: Create Release
