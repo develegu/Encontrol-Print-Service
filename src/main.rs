@@ -414,6 +414,8 @@ async fn run_server() -> std::io::Result<()> {
             .max_age(3600);
 
         App::new()
+            .app_data(PayloadConfig::new(50 * 1024 * 1024)) // 50 MB
+
             .wrap(cors)
             .wrap(middleware::Logger::default())
             .route("/hello", web::get().to(health_check))
