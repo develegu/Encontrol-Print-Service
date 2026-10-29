@@ -1,6 +1,6 @@
 [package]
 name = "en-control-print-service"
-version = "0.2.2"
+version = "0.2.4"
 edition = "2021"
 authors = ["En-Control Team"]
 description = "Servicio local de impresión para En-Control PWA"
@@ -21,7 +21,7 @@ serde_json = "1.0"
 printers = "2.2"
 
 # Auto-actualización
-self_update = "0.39"
+self_update = { version = "0.39", features = ["archive-zip", "compression-zip-deflate", "archive-tar", "compression-flate2"] }
 
 # Logging
 env_logger = "0.11"

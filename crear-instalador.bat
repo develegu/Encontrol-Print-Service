@@ -30,14 +30,14 @@ echo    Version detectada: %VERSION%
 echo.
 echo 4. Generando Instalador MSI (WiX Toolset)...
 set "WIX_PATH=C:\Program Files (x86)\WiX Toolset v3.14\bin"
-"%WIX_PATH%\candle" -dVersion=%VERSION% installer.wxs
+"%WIX_PATH%\candle" -ext WixUtilExtension -dVersion=%VERSION% installer.wxs
 if %ERRORLEVEL% NEQ 0 (
     echo [ERROR] Fallo al ejecutar 'candle'. Verifica WiX Toolset.
     pause
     exit /b %ERRORLEVEL%
 )
 
-"%WIX_PATH%\light" -ext WixUIExtension -out EnControlPrintService.msi installer.wixobj
+"%WIX_PATH%\light" -ext WixUIExtension -ext WixUtilExtension -out EnControlPrintService.msi installer.wixobj
 if %ERRORLEVEL% NEQ 0 (
     echo [ERROR] Fallo al ejecutar 'light'.
     pause

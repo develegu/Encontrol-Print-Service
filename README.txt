@@ -16,11 +16,11 @@ Servicio local de impresión para la PWA **En-Control**, compatible con la API d
 
 ### Opción 1: Descarga el instalador (Recomendado)
 
-1. Ve a [Releases](https://github.com/tu-usuario/en-control-print-service/releases)
+1. Ve a [Releases](https://github.com/develegu/Encontrol-Print-Service/releases)
 2. Descarga el instalador para tu plataforma:
-   - **Windows**: `en-control-print-service-windows-x64.exe`
-   - **macOS Intel**: `en-control-print-service-macos-x64`
-   - **macOS ARM (M1/M2)**: `en-control-print-service-macos-arm64`
+   - **Windows**: `en-control-print-service-x86_64-pc-windows-msvc.zip`
+   - **macOS Intel**: `en-control-print-service-x86_64-apple-darwin.tar.gz`
+   - **macOS ARM (M1/M2)**: `en-control-print-service-aarch64-apple-darwin.tar.gz`
 3. Ejecuta el instalador
 
 ### Opción 2: Compilar desde código fuente (Windows)

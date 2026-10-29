@@ -330,7 +330,7 @@ async fn write_to_printer(body: web::Bytes) -> HttpResponse {
             resp.insert_header((HeaderName::from_static("x-printer-message"), HeaderValue::from_str(&msg).unwrap_or(HeaderValue::from_static("Print error"))));
             resp.json(serde_json::json!({
                 "error": msg,
-                "version": "0.2.2"
+                "version": env!("CARGO_PKG_VERSION")
             }))
         }
     }
@@ -414,7 +414,7 @@ async fn run_server() -> std::io::Result<()> {
             .max_age(3600);
 
         App::new()
-            .app_data(PayloadConfig::new(50 * 1024 * 1024)) // 50 MB
+            .app_data(web::PayloadConfig::new(50 * 1024 * 1024)) // 50 MB
 
             .wrap(cors)
             .wrap(middleware::Logger::default())

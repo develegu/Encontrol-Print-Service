@@ -272,7 +272,7 @@ pub fn print_raw(printer_name: &str, data: &str) -> std::result::Result<(), Box<
     use std::path::Path;
     use log::{info, error, warn};
 
-    let version = "0.2.2";
+    let version = env!("CARGO_PKG_VERSION");
     let mut errors_log = Vec::new();
     
     info!("🔍 [v{}] Iniciando impresión en Mac. Nombre recibido: '{}'", version, printer_name);
